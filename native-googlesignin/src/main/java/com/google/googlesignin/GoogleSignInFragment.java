@@ -34,6 +34,7 @@ import com.google.android.gms.common.api.CommonStatusCodes;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Scope;
+import com.google.android.gms.common.GoogleApiAvailability;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -282,6 +283,28 @@ public class GoogleSignInFragment extends Fragment implements
                           clearRequest(false);
                         }
                       });
+
+      // Make sure that the device has Google Play Services installed (otherwise sign in will not work)
+      final int isPlayServicesAvailable = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(getActivity());
+
+      if (isPlayServicesAvailable != ConnectionResult.SUCCESS)
+      {
+        boolean isUserResolvable = GoogleApiAvailability.getInstance().isUserResolvableError(isPlayServicesAvailable);
+
+        if (isUserResolvable)
+        {
+          getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+              GoogleApiAvailability.getInstance().showErrorDialogFragment(getActivity(), isPlayServicesAvailable, 3300);
+            }
+          });
+
+          // The user will have to resolve the situation, so cancel this attempt
+          request.setResult(CommonStatusCodes.CANCELED, null);
+          return;
+        }
+      }
 
       // Build the GoogleAPIClient
       buildClient(request);
